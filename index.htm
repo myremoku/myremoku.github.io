@@ -2,7 +2,7 @@
     <head>
         <title>myremoku</title>
         <script>
-            var rokuip = 'http://' + location.hash.slice(1);
+            var rokuIp = location.hash.slice(1);
 
             function bake_json_cookie(name, value) {
                 var cookie = [name, '=', JSON.stringify(value), '; domain=.', window.location.host.toString(), '; path=/;'].join(
@@ -14,6 +14,20 @@
                 var result = document.cookie.match(new RegExp(name + '=([^;]+)'));
                 result && (result = JSON.parse(result[1]));
                 return result;
+            }
+
+            if( rokuIp == '' ) {
+                rokuIp = read_json_cookie('rokuIp') || '';
+                const url = new URL(window.location);
+                url.hash = '#' + rokuIp;
+                history.replaceState(
+                    {}
+                    ,document.title
+                    ,url
+                );
+            }
+            else {
+                bake_json_cookie('rokuIp',rokuIp)
             }
 
             function onBodyLoad() {
@@ -37,7 +51,7 @@
             }
             function postToRoku(keyPath, event, keyDir) {
                 var f = document.all.form4Posting;
-                f.action = rokuip + ':8060/' + (!keyDir ? 'keypress' : keyDir) + '/' + keyPath;
+                f.action = 'http://' + rokuIp + ':8060/' + (!keyDir ? 'keypress' : keyDir) + '/' + keyPath;
                 console.log(
                     `Posting to "${f.action}"` +
                         (!event
