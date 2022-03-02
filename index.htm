@@ -44,7 +44,7 @@
                         ArrowRight: 'Right',
                         Backspace: 'Backspace',
                         Enter: 'Select',
-                        ' ': '%20'
+                        ' ': 'LIT_%20'
                     };
                     if( (event.altKey || event.ctrlKey) && event.key == 'ArrowLeft' ) postToRoku('Back');
                     else postToRoku( nonLitKeys[event.key] || 'LIT_' + event.key, event);
