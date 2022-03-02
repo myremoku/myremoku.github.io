@@ -44,9 +44,10 @@
                         ArrowRight: 'Right',
                         Backspace: 'Backspace',
                         Enter: 'Select',
+                        ' ': '%20'
                     };
-                    var keyPressPath = nonLitKeys[event.key] || 'LIT_' + event.key;
-                    postToRoku(keyPressPath, event);
+                    if( (event.altKey || event.ctrlKey) && event.key == 'ArrowLeft' ) postToRoku('Back');
+                    else postToRoku( nonLitKeys[event.key] || 'LIT_' + event.key, event);
                 });
             }
             function postToRoku(keyPath, event, keyDir) {
