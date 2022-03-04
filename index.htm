@@ -32,6 +32,7 @@
 
             function onBodyLoad() {
                 document.addEventListener('keydown', (e) => {
+                    console.log( `event.type=[${event.type}] .key=[${event.key}] .keyCode=[${event.keyCode}] .code=[${event.code}] .altKey=[${event.altKey}] .ctrlKey=[${event.ctrlKey}]` );
                     if (event.metaKey || ['Shift', 'Meta'].includes(event.key)) return;
                     // Roku Extended Control Protocol (ECP) documentation:
                     // https://developer.roku.com/docs/developer-program/debugging/external-control-api.md
@@ -46,19 +47,18 @@
                         Enter: 'Select',
                         ' ': 'LIT_%20'
                     };
-                    if( (event.altKey || event.ctrlKey) && event.key == 'ArrowLeft' ) postToRoku('Back');
+                    if( event.altKey || event.ctrlKey) {
+                       if( event.key == 'ArrowLeft' ) postToRoku('Back', event);
+                       if( event.key == 'ArrowUp' ) postToRoku('VolumeUp', event);
+                       if( event.key == 'ArrowDown' ) postToRoku('VolumeDown', event);
+                    }
                     else postToRoku( nonLitKeys[event.key] || 'LIT_' + event.key, event);
                 });
             }
             function postToRoku(keyPath, event, keyDir) {
                 var f = document.all.form4Posting;
                 f.action = 'http://' + rokuIp + ':8060/' + (!keyDir ? 'keypress' : keyDir) + '/' + keyPath;
-                console.log(
-                    `Posting to "${f.action}"` +
-                        (!event
-                            ? ''
-                            : ` event.type=[${event.type}] .key=[${event.key}] .keyCode=[${event.keyCode}] .code=[${event.code}]`)
-                );
+                console.log(`Posting to "${f.action}"`);
                 f.submit();
             }
         </script>
@@ -82,23 +82,23 @@
     <body bgcolor="#000000" onload="onBodyLoad()">
         <form></form>
         <div>
-            <span onclick="postToRoku('PowerOff')">⌽</span>
+            <span onclick="postToRoku('PowerOff')" title="Power Off">⌽</span>
         </div>
         <div>
-            <span onclick="postToRoku('Home')">⌂</span>
-            <span onclick="postToRoku('VolumeUp')">🔊</span>
+            <span onclick="postToRoku('Home')" title="Home">⌂</span>
+            <span onclick="postToRoku('VolumeUp')" title="Volume Up (Ctrl + Up Arrow)">🔊</span>
         </div>
         <div>
-            <span onclick="postToRoku('Back')">←</span>
-            <span onclick="postToRoku('VolumeDown')">🔉</span>
+            <span onclick="postToRoku('Back')" title="Back (Ctrl + Left Arrow)">←</span>
+            <span onclick="postToRoku('VolumeDown')" title="Volume Down (Ctrl + Down Arrow)">🔉</span>
         </div>
         <div>
-            <span onclick="postToRoku('Info',null,'keydown')">ⓘ</span>
+            <span onclick="postToRoku('Info',null,'keydown')" title="Info">ⓘ</span>
         </div>
         <div>
-            <span onclick="postToRoku('Rev')">⏪️</span>
-            <span onclick="postToRoku('Play')">▶️</span>
-            <span onclick="postToRoku('Fwd')">⏩️</span>
+            <span onclick="postToRoku('Rev')" title="Reverse">⏪️</span>
+            <span onclick="postToRoku('Play')" title="Play">▶️</span>
+            <span onclick="postToRoku('Fwd')" title="Forward">⏩️</span>
         </div>
         <iframe name="if4roku" style="display: none;"></iframe>
         <form id="form4Posting" target="if4roku" method="POST"></form>
