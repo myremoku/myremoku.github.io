@@ -2,63 +2,153 @@
     <head>
         <title>myremoku</title>
         <script>
-            var rokuIp = location.hash.slice(1);
+            // Roku ECP API
+            // https://developer.roku.com/docs/developer-program/dev-tools/external-control-api.md
 
-            function bake_json_cookie(name, value) {
-                var cookie = [name, '=', JSON.stringify(value), '; domain=.', window.location.host.toString(), '; path=/;'].join(
-                    ''
-                );
-                document.cookie = cookie;
-            }
-            function read_json_cookie(name) {
-                var result = document.cookie.match(new RegExp(name + '=([^;]+)'));
-                result && (result = JSON.parse(result[1]));
-                return result;
-            }
+            const rokuAddresses = {
+                addresses: new Set(),
 
-            if( rokuIp == '' ) {
-                rokuIp = read_json_cookie('rokuIp') || '';
-                const url = new URL(window.location);
-                url.hash = '#' + rokuIp;
-                history.replaceState(
-                    {}
-                    ,document.title
-                    ,url
-                );
-            }
-            else {
-                bake_json_cookie('rokuIp',rokuIp)
-            }
+                // Adds a new address to the set and updates the select element
+                addAddress(address) {
+                    if (!this.addresses.has(address)) {
+                        this.addresses.add(address);
+
+                        const select = document.getElementById("rokuSelect");
+                        const option = document.createElement("option");
+                        option.value = address;
+                        option.text = address;
+                        option.selected = "selected";
+                        select.appendChild(option);
+                        document.getElementById("searchingMessage").style.display = "none";
+                    }
+                },
+                length() {
+                    return this.addresses.size;
+                },
+            };
 
             function onBodyLoad() {
-                document.addEventListener('keydown', (e) => {
-                    console.log( `event.type=[${event.type}] .key=[${event.key}] .keyCode=[${event.keyCode}] .code=[${event.code}] .altKey=[${event.altKey}] .ctrlKey=[${event.ctrlKey}]` );
-                    if (event.metaKey || ['Shift', 'Meta'].includes(event.key)) return;
+                // The IP address ranges to scan
+                const ipRanges = [];
+
+                if (location.hash.length > 1) {
+                    const ip = location.hash.slice(1);
+                    rokuAddresses.addAddress(ip);
+                    if (ip.startsWith("192.168.0")) {
+                        ipRanges.push("192.168.0");
+                    } else {
+                        ipRanges.push("192.168.1");
+                    }
+                } else {
+                    ipRanges.push("192.168.0");
+                    ipRanges.push("192.168.1");
+                }
+
+                console.log("Discovering Roku devices on the network...");
+
+                // The port to use for the HTTP request
+                const port = 8060;
+
+                // The path to the device info endpoint
+                const path = "/query/device-info";
+
+                // An array to store the pending requests
+                const requests = [];
+
+                // Iterate through each IP address range and each IP address in the range, and add a request for each one to the pending requests array
+                for (const ipRange of ipRanges) {
+                    for (let i = 1; i <= 255; i++) {
+                        const ipAddress = `${ipRange}.${i}`;
+                        const url = `http://${ipAddress}:${port}${path}`;
+
+                        requests.push(
+                            fetch(url)
+                                .then((response) => {
+                                    // If the response is successful, add the device to the list
+                                    if (response.ok) {
+                                        console.log(`Discovered Roku device: ${ipAddress}`);
+                                        rokuAddresses.addAddress(url);
+                                    }
+                                })
+                                .catch((error) => {
+                                    if (error.type === "opaque") {
+                                        // Handle CORS-related error
+                                        console.warning(`Potential CORS error for ${url}`);
+                                    } else {
+                                        // Handle other types of errors
+                                        // If there's an error (e.g. the device is not found or doesn't respond), ignore it and continue scanning
+                                    }
+                                })
+                        );
+                    }
+                }
+
+                // Send all of the requests in parallel and wait for all of them to complete before continuing
+                Promise.all(requests).then(() => {
+                    console.log(`Discovered ${rokuAddresses.length()} Roku devices on the network.`);
+                });
+
+                const rokuSelect = document.getElementById("rokuSelect");
+                rokuSelect.onchange = function () {
+                    const selectedOption = rokuSelect.options[rokuSelect.selectedIndex];
+                    if (selectedOption.id == "selectMessage") {
+                        return;
+                    }
+                    const selectedValue = selectedOption.value;
+                    window.location.hash = selectedValue;
+                };
+
+                document.addEventListener("keydown", (e) => {
+                    console.log(
+                        `event.type=[${event.type}] .key=[${event.key}] .keyCode=[${event.keyCode}] .code=[${event.code}] .altKey=[${event.altKey}] .ctrlKey=[${event.ctrlKey}]`
+                    );
+                    if (event.metaKey || ["Shift", "Meta"].includes(event.key)) return;
                     // Roku Extended Control Protocol (ECP) documentation:
                     // https://developer.roku.com/docs/developer-program/debugging/external-control-api.md
                     // Keypress key values:
                     // https://developer.roku.com/docs/developer-program/debugging/external-control-api.md#keypress-key-values
                     var nonLitKeys = {
-                        ArrowDown: 'Down',
-                        ArrowLeft: 'Left',
-                        ArrowUp: 'Up',
-                        ArrowRight: 'Right',
-                        Backspace: 'Backspace',
-                        Enter: 'Select',
-                        Home: 'Home',
-                        ' ': 'LIT_%20'
+                        ArrowDown: "Down",
+                        ArrowLeft: "Left",
+                        ArrowUp: "Up",
+                        ArrowRight: "Right",
+                        Backspace: "Backspace",
+                        Enter: "Select",
+                        Home: "Home",
+                        " ": "LIT_%20",
                     };
-                    if( event.altKey || event.ctrlKey) {
-                       if( event.key == 'ArrowLeft' ) postToRoku('Back', event);
-                       if( event.key == 'ArrowUp' ) postToRoku('VolumeUp', event);
-                       if( event.key == 'ArrowDown' ) postToRoku('VolumeDown', event);
-                    }
-                    else postToRoku( nonLitKeys[event.key] || 'LIT_' + event.key, event);
+                    if (event.altKey || event.ctrlKey) {
+                        if (event.key == "ArrowLeft") postToRoku("Back", event);
+                        if (event.key == "ArrowUp") postToRoku("VolumeUp", event);
+                        if (event.key == "ArrowDown") postToRoku("VolumeDown", event);
+                    } else postToRoku(nonLitKeys[event.key] || "LIT_" + event.key, event);
                 });
             }
+
+            function bake_json_cookie(name, value) {
+                var cookie = [name, "=", JSON.stringify(value), "; domain=.", window.location.host.toString(), "; path=/;"].join("");
+                document.cookie = cookie;
+            }
+            function read_json_cookie(name) {
+                var result = document.cookie.match(new RegExp(name + "=([^;]+)"));
+                result && (result = JSON.parse(result[1]));
+                return result;
+            }
+
             function postToRoku(keyPath, event, keyDir) {
+                var rokuIp = location.hash.slice(1);
+
+                if (rokuIp == "") {
+                    rokuIp = read_json_cookie("rokuIp") || "";
+                    const url = new URL(window.location);
+                    url.hash = "#" + rokuIp;
+                    history.replaceState({}, document.title, url);
+                } else {
+                    bake_json_cookie("rokuIp", rokuIp);
+                }
+
                 var f = document.all.form4Posting;
-                f.action = 'http://' + rokuIp + ':8060/' + (!keyDir ? 'keypress' : keyDir) + '/' + keyPath;
+                f.action = "http://" + rokuIp + ":8060/" + (!keyDir ? "keypress" : keyDir) + "/" + keyPath;
                 console.log(`Posting to "${f.action}"`);
                 f.submit();
             }
@@ -83,6 +173,12 @@
     <body bgcolor="#000000" onload="onBodyLoad()">
         <form></form>
         <div>
+            <select name="rokuSelect" id="rokuSelect">
+                <option id="selectMessage">Select a Roku on your network</option>
+                <option id="searchingMessage" disabled="true">Searching... (please wait)</option>
+            </select>
+        </div>
+        <div>
             <span onclick="postToRoku('PowerOff')" title="Power Off">⌽</span>
         </div>
         <div>
@@ -101,7 +197,7 @@
             <span onclick="postToRoku('Play')" title="Play">▶️</span>
             <span onclick="postToRoku('Fwd')" title="Forward">⏩️</span>
         </div>
-        <iframe name="if4roku" style="display: none;"></iframe>
+        <iframe name="if4roku" style="display: none"></iframe>
         <form id="form4Posting" target="if4roku" method="POST"></form>
     </body>
 </html>

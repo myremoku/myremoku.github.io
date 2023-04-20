@@ -1,0 +1,22 @@
+{
+  "name": "myremoku.github.io",
+  "version": "0.0.4",
+  "description": "",
+  "scripts": {
+    "start": "http-server"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/myremoku/myremoku.github.io.git"
+  },
+  "keywords": [],
+  "author": "Jon Freed",
+  "license": "Unlicense (unlicense.org)",
+  "bugs": {
+    "url": "https://github.com/myremoku/myremoku.github.io/issues"
+  },
+  "homepage": "https://github.com/myremoku/myremoku.github.io#readme",
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  }
+}
