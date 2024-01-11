@@ -21,10 +21,7 @@
                         select.appendChild(option);
                         document.getElementById("searchingMessage").style.display = "none";
                     }
-                },
-                length() {
-                    return this.addresses.size;
-                },
+                }
             };
 
             function onBodyLoad() {
@@ -55,6 +52,8 @@
                 // An array to store the pending requests
                 const requests = [];
 
+                let discovered = 0;
+
                 // Iterate through each IP address range and each IP address in the range, and add a request for each one to the pending requests array
                 for (const ipRange of ipRanges) {
                     for (let i = 1; i <= 255; i++) {
@@ -62,12 +61,13 @@
                         const url = `http://${ipAddress}:${port}${path}`;
 
                         requests.push(
-                            fetch(url)
+                            fetch(url, { timeout: 1000 })
                                 .then((response) => {
                                     // If the response is successful, add the device to the list
                                     if (response.ok) {
                                         console.log(`Discovered Roku device: ${ipAddress}`);
-                                        rokuAddresses.addAddress(url);
+                                        discovered++;
+                                        rokuAddresses.addAddress(ipAddress);
                                     }
                                 })
                                 .catch((error) => {
@@ -85,7 +85,7 @@
 
                 // Send all of the requests in parallel and wait for all of them to complete before continuing
                 Promise.all(requests).then(() => {
-                    console.log(`Discovered ${rokuAddresses.length()} Roku devices on the network.`);
+                    console.log(`Discovered ${discovered} Roku devices on the network.`);
                 });
 
                 const rokuSelect = document.getElementById("rokuSelect");
@@ -154,7 +154,7 @@
             }
         </script>
         <style>
-            div {
+            div.btn {
                 font-size: xxx-large;
                 display: flex;
                 justify-content: center;
@@ -162,42 +162,45 @@
                 height: 75px;
                 color: #dddddd;
             }
-            span {
+            span.btn {
                 cursor: pointer;
             }
-            span + span {
+            span.btn + span.btn {
                 margin-left: 75px;
             }
         </style>
     </head>
     <body bgcolor="#000000" onload="onBodyLoad()">
-        <form></form>
-        <div>
+        <div>&nbsp;</div>
+        <div style="text-align: center; color: white">
+            <p>Select a Roku on your network:</p>
             <select name="rokuSelect" id="rokuSelect">
-                <option id="selectMessage">Select a Roku on your network</option>
-                <option id="searchingMessage" disabled="true">Searching... (please wait)</option>
+                <option id="searchingMessage" disabled="true" style="display: none">Searching... (please wait)</option>
             </select>
         </div>
-        <div>
-            <span onclick="postToRoku('PowerOff')" title="Power Off">⌽</span>
+        <div>&nbsp;</div>
+        <div>&nbsp;</div>
+        <div class="btn">
+            <span class="btn" onclick="postToRoku('PowerOff')" title="Power Off">⌽</span>
         </div>
-        <div>
-            <span onclick="postToRoku('Home')" title="Home">⌂</span>
-            <span onclick="postToRoku('VolumeUp')" title="Volume Up (Ctrl + Up Arrow)">🔊</span>
+        <div class="btn">
+            <span class="btn" onclick="postToRoku('Home')" title="Home">⌂</span>
+            <span class="btn" onclick="postToRoku('VolumeUp')" title="Volume Up (Ctrl + Up Arrow)">🔊</span>
         </div>
-        <div>
-            <span onclick="postToRoku('Back')" title="Back (Ctrl + Left Arrow)">←</span>
-            <span onclick="postToRoku('VolumeDown')" title="Volume Down (Ctrl + Down Arrow)">🔉</span>
+        <div class="btn">
+            <span class="btn" onclick="postToRoku('Back')" title="Back (Ctrl + Left Arrow)">←</span>
+            <span class="btn" onclick="postToRoku('VolumeDown')" title="Volume Down (Ctrl + Down Arrow)">🔉</span>
         </div>
-        <div>
-            <span onclick="postToRoku('Info',null,'keydown')" title="Info">ⓘ</span>
+        <div class="btn">
+            <span class="btn" onclick="postToRoku('Info',null,'keydown')" title="Info">ⓘ</span>
         </div>
-        <div>
-            <span onclick="postToRoku('Rev')" title="Reverse">⏪️</span>
-            <span onclick="postToRoku('Play')" title="Play">▶️</span>
-            <span onclick="postToRoku('Fwd')" title="Forward">⏩️</span>
+        <div class="btn">
+            <span class="btn" onclick="postToRoku('Rev')" title="Reverse">⏪️</span>
+            <span class="btn" onclick="postToRoku('Play')" title="Play">▶️</span>
+            <span class="btn" onclick="postToRoku('Fwd')" title="Forward">⏩️</span>
         </div>
-        <iframe name="if4roku" style="display: none"></iframe>
-        <form id="form4Posting" target="if4roku" method="POST"></form>
+        <iframe name="if4rokuPost" style="display: none"></iframe>
+        <form id="form4Posting" target="if4rokuPost" method="POST"></form>
+        <form id="form4Getting" target="if4rokuGet" method="GET"></form>
     </body>
 </html>
