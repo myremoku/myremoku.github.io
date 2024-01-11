@@ -125,26 +125,30 @@
                 });
             }
 
-            function bake_json_cookie(name, value) {
-                var cookie = [name, "=", JSON.stringify(value), "; domain=.", window.location.host.toString(), "; path=/;"].join("");
-                document.cookie = cookie;
-            }
-            function read_json_cookie(name) {
-                var result = document.cookie.match(new RegExp(name + "=([^;]+)"));
-                result && (result = JSON.parse(result[1]));
-                return result;
-            }
+            // function bake_json_cookie(name, value) {
+            //     var cookie = [name, "=", JSON.stringify(value), "; domain=.", window.location.host.toString(), "; path=/;"].join("");
+            //     document.cookie = cookie;
+            // }
+            // function read_json_cookie(name) {
+            //     var result = document.cookie.match(new RegExp(name + "=([^;]+)"));
+            //     result && (result = JSON.parse(result[1]));
+            //     return result;
+            // }
+            
+            // localStorage.getItem("myremoku_addresses");
+            // localStorage.setItem("myremoku_addresses","");
+
 
             function postToRoku(keyPath, event, keyDir) {
                 var rokuIp = location.hash.slice(1);
 
                 if (rokuIp == "") {
-                    rokuIp = read_json_cookie("rokuIp") || "";
+                    rokuIp = /*read_json_cookie("rokuIp") ||*/ "";
                     const url = new URL(window.location);
                     url.hash = "#" + rokuIp;
                     history.replaceState({}, document.title, url);
                 } else {
-                    bake_json_cookie("rokuIp", rokuIp);
+                    // bake_json_cookie("rokuIp", rokuIp);
                 }
 
                 var f = document.all.form4Posting;
