@@ -51,6 +51,7 @@
 
                 // An array to store the pending requests
                 const requests = [];
+                const errors = [];
 
                 let discovered = 0;
 
@@ -69,6 +70,9 @@
                                         discovered++;
                                         rokuAddresses.addAddress(ipAddress);
                                     }
+                                    else {
+                                        errors.push(ipAddress + " response != ok " + JSON.stringify(response,undefined,4));
+                                    }
                                 })
                                 .catch((error) => {
                                     if (error.type === "opaque") {
@@ -77,6 +81,7 @@
                                     } else {
                                         // Handle other types of errors
                                         // If there's an error (e.g. the device is not found or doesn't respond), ignore it and continue scanning
+                                        errors.push(ipAddress + " ERROR " + error.message);
                                     }
                                 })
                         );
@@ -86,6 +91,8 @@
                 // Send all of the requests in parallel and wait for all of them to complete before continuing
                 Promise.all(requests).then(() => {
                     console.log(`Discovered ${discovered} Roku devices on the network.`);
+                    errors.sort();
+                    console.warn(`Discovery errors by ip address:`,JSON.stringify(errors,undefined,4));
                 });
 
                 const rokuSelect = document.getElementById("rokuSelect");
@@ -134,7 +141,7 @@
             //     result && (result = JSON.parse(result[1]));
             //     return result;
             // }
-            
+
             // localStorage.getItem("myremoku_addresses");
             // localStorage.setItem("myremoku_addresses","");
 
