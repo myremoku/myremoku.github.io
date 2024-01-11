@@ -28,6 +28,11 @@
                 // The IP address ranges to scan
                 const ipRanges = [];
 
+                var myremoku_addresses = JSON.parse(localStorage.getItem("myremoku_addresses")) || [];
+                for( var a in myremoku_addresses ) {
+                    rokuAddresses.addAddress(myremoku_addresses[a]);
+                }
+                
                 if (location.hash.length > 1) {
                     const ip = location.hash.slice(1);
                     rokuAddresses.addAddress(ip);
@@ -142,8 +147,18 @@
             //     return result;
             // }
 
+
             // localStorage.getItem("myremoku_addresses");
             // localStorage.setItem("myremoku_addresses","");
+
+            function add_ip_addr_to_localStorage( ipAddress ) {
+                var i = JSON.parse(localStorage.getItem("myremoku_addresses")) || [];
+                if( !i.indexOf("ipAddress")) {
+                    i.push(ipAddress);
+                    i.sort();
+                    localStorage.setItem("myremoku_addresses",JSON.stringify(i));
+                }
+            }
 
 
             function postToRoku(keyPath, event, keyDir) {
