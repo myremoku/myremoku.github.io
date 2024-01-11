@@ -154,7 +154,7 @@
 
             function add_ip_addr_to_localStorage( ipAddress ) {
                 var i = JSON.parse(localStorage.getItem("myremoku_addresses")) || [];
-                if( !i.indexOf("ipAddress")) {
+                if( !i.indexOf(ipAddress)) {
                     i.push(ipAddress);
                     i.sort();
                     localStorage.setItem("myremoku_addresses",JSON.stringify(i));
