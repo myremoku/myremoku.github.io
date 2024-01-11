@@ -21,7 +21,7 @@
                         select.appendChild(option);
                         document.getElementById("searchingMessage").style.display = "none";
                     }
-                }
+                },
             };
 
             function onBodyLoad() {
@@ -29,10 +29,10 @@
                 const ipRanges = [];
 
                 var myremoku_addresses = JSON.parse(localStorage.getItem("myremoku_addresses")) || [];
-                for( var a in myremoku_addresses ) {
+                for (var a in myremoku_addresses) {
                     rokuAddresses.addAddress(myremoku_addresses[a]);
                 }
-                
+
                 if (location.hash.length > 1) {
                     const ip = location.hash.slice(1);
                     rokuAddresses.addAddress(ip);
@@ -75,9 +75,8 @@
                                         console.log(`Discovered Roku device: ${ipAddress}`);
                                         discovered++;
                                         rokuAddresses.addAddress(ipAddress);
-                                    }
-                                    else {
-                                        errors.push(ipAddress + " response != ok " + JSON.stringify(response,undefined,4));
+                                    } else {
+                                        errors.push(ipAddress + " response != ok " + JSON.stringify(response, undefined, 4));
                                     }
                                 })
                                 .catch((error) => {
@@ -98,7 +97,7 @@
                 Promise.all(requests).then(() => {
                     console.log(`Discovered ${discovered} Roku devices on the network.`);
                     errors.sort();
-                    console.warn(`Discovery errors by ip address:`,JSON.stringify(errors,undefined,4));
+                    console.warn(`Discovery errors by ip address:`, JSON.stringify(errors, undefined, 4));
                 });
 
                 const rokuSelect = document.getElementById("rokuSelect");
@@ -148,19 +147,17 @@
             //     return result;
             // }
 
-
             // localStorage.getItem("myremoku_addresses");
             // localStorage.setItem("myremoku_addresses","");
 
-            function add_ip_addr_to_localStorage( ipAddress ) {
+            function add_ip_addr_to_localStorage(ipAddress) {
                 var i = JSON.parse(localStorage.getItem("myremoku_addresses")) || [];
-                if( !i.indexOf(ipAddress)) {
+                if (i.indexOf(ipAddress) == -1) {
                     i.push(ipAddress);
                     i.sort();
-                    localStorage.setItem("myremoku_addresses",JSON.stringify(i));
+                    localStorage.setItem("myremoku_addresses", JSON.stringify(i));
                 }
             }
-
 
             function postToRoku(keyPath, event, keyDir) {
                 var rokuIp = location.hash.slice(1);
