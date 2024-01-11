@@ -36,6 +36,7 @@
                 if (location.hash.length > 1) {
                     const ip = location.hash.slice(1);
                     rokuAddresses.addAddress(ip);
+                    add_ip_addr_to_localStorage(ip);
                     if (ip.startsWith("192.168.0")) {
                         ipRanges.push("192.168.0");
                     } else {
