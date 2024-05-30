@@ -4,102 +4,16 @@
         <script>
             // Roku ECP API
             // https://developer.roku.com/docs/developer-program/dev-tools/external-control-api.md
-
-            const rokuAddresses = {
-                addresses: new Set(),
-
-                // Adds a new address to the set and updates the select element
-                addAddress(address) {
-                    if (!this.addresses.has(address)) {
-                        this.addresses.add(address);
-
-                        const select = document.getElementById("rokuSelect");
-                        const option = document.createElement("option");
-                        option.value = address;
-                        option.text = address;
-                        option.selected = "selected";
-                        select.appendChild(option);
-                        document.getElementById("searchingMessage").style.display = "none";
-                    }
-                },
-            };
-
+            
+            // FYI:  The localStorage key "rokuAddreses43" has "43" at the end just to help ensure it is unique.
+            let LOCAL_STORAGE_KEY = "rokuAddresses43";
+            
             function onBodyLoad() {
-                // The IP address ranges to scan
-                const ipRanges = [];
-
-                var myremoku_addresses = JSON.parse(localStorage.getItem("myremoku_addresses")) || [];
-                for (var a in myremoku_addresses) {
-                    rokuAddresses.addAddress(myremoku_addresses[a]);
-                }
-
-                if (location.hash.length > 1) {
-                    const ip = location.hash.slice(1);
-                    rokuAddresses.addAddress(ip);
-                    add_ip_addr_to_localStorage(ip);
-                    if (ip.startsWith("192.168.0")) {
-                        ipRanges.push("192.168.0");
-                    } else {
-                        ipRanges.push("192.168.1");
-                    }
-                } else {
-                    ipRanges.push("192.168.0");
-                    ipRanges.push("192.168.1");
-                }
-
-                console.log("Discovering Roku devices on the network...");
-
-                // The port to use for the HTTP request
-                const port = 8060;
-
-                // The path to the device info endpoint
-                const path = "/query/device-info";
-
-                // An array to store the pending requests
-                const requests = [];
-                const errors = [];
-
-                let discovered = 0;
-
-                // Iterate through each IP address range and each IP address in the range, and add a request for each one to the pending requests array
-                for (const ipRange of ipRanges) {
-                    for (let i = 1; i <= 255; i++) {
-                        const ipAddress = `${ipRange}.${i}`;
-                        const url = `http://${ipAddress}:${port}${path}`;
-
-                        requests.push(
-                            fetch(url, { timeout: 1000 })
-                                .then((response) => {
-                                    // If the response is successful, add the device to the list
-                                    if (response.ok) {
-                                        console.log(`Discovered Roku device: ${ipAddress}`);
-                                        discovered++;
-                                        rokuAddresses.addAddress(ipAddress);
-                                    } else {
-                                        errors.push(ipAddress + " response != ok " + JSON.stringify(response, undefined, 4));
-                                    }
-                                })
-                                .catch((error) => {
-                                    if (error.type === "opaque") {
-                                        // Handle CORS-related error
-                                        console.warning(`Potential CORS error for ${url}`);
-                                    } else {
-                                        // Handle other types of errors
-                                        // If there's an error (e.g. the device is not found or doesn't respond), ignore it and continue scanning
-                                        errors.push(ipAddress + " ERROR " + error.message);
-                                    }
-                                })
-                        );
-                    }
-                }
-
-                // Send all of the requests in parallel and wait for all of them to complete before continuing
-                Promise.all(requests).then(() => {
-                    console.log(`Discovered ${discovered} Roku devices on the network.`);
-                    errors.sort();
-                    console.warn(`Discovery errors by ip address:`, JSON.stringify(errors, undefined, 4));
-                });
-
+                console.log("START onBodyLoad()");
+            
+                rokuAddresses.init();
+            
+                // Handle changes to the select/dropdown list of possible roku ip addresses
                 const rokuSelect = document.getElementById("rokuSelect");
                 rokuSelect.onchange = function () {
                     const selectedOption = rokuSelect.options[rokuSelect.selectedIndex];
@@ -107,9 +21,11 @@
                         return;
                     }
                     const selectedValue = selectedOption.value;
-                    window.location.hash = selectedValue;
+                    rokuAddresses.upsertAddresses(selectedValue, true);
+                    window.location.hash = "#" + selectedValue;
                 };
-
+            
+                // Capture keydown events and send them to the roku when appropriate
                 document.addEventListener("keydown", (e) => {
                     console.log(
                         `event.type=[${event.type}] .key=[${event.key}] .keyCode=[${event.keyCode}] .code=[${event.code}] .altKey=[${event.altKey}] .ctrlKey=[${event.ctrlKey}]`
@@ -130,52 +46,142 @@
                         " ": "LIT_%20",
                     };
                     if (event.altKey || event.ctrlKey) {
-                        if (event.key == "ArrowLeft") postToRoku("Back", event);
-                        if (event.key == "ArrowUp") postToRoku("VolumeUp", event);
-                        if (event.key == "ArrowDown") postToRoku("VolumeDown", event);
-                    } else postToRoku(nonLitKeys[event.key] || "LIT_" + event.key, event);
+                        if (event.key == "ArrowLeft") sendToRoku("Back", event);
+                        if (event.key == "ArrowUp") sendToRoku("VolumeUp", event);
+                        if (event.key == "ArrowDown") sendToRoku("VolumeDown", event);
+                    } else sendToRoku(nonLitKeys[event.key] || "LIT_" + event.key, event);
                 });
             }
-
-            // function bake_json_cookie(name, value) {
-            //     var cookie = [name, "=", JSON.stringify(value), "; domain=.", window.location.host.toString(), "; path=/;"].join("");
-            //     document.cookie = cookie;
-            // }
-            // function read_json_cookie(name) {
-            //     var result = document.cookie.match(new RegExp(name + "=([^;]+)"));
-            //     result && (result = JSON.parse(result[1]));
-            //     return result;
-            // }
-
-            // localStorage.getItem("myremoku_addresses");
-            // localStorage.setItem("myremoku_addresses","");
-
-            function add_ip_addr_to_localStorage(ipAddress) {
-                var i = JSON.parse(localStorage.getItem("myremoku_addresses")) || [];
-                if (i.indexOf(ipAddress) == -1) {
-                    i.push(ipAddress);
-                    i.sort();
-                    localStorage.setItem("myremoku_addresses", JSON.stringify(i));
-                }
-            }
-
-            function postToRoku(keyPath, event, keyDir) {
+            
+            function sendToRoku(keyPath, event, keyDir) {
                 var rokuIp = location.hash.slice(1);
-
-                if (rokuIp == "") {
-                    rokuIp = /*read_json_cookie("rokuIp") ||*/ "";
-                    const url = new URL(window.location);
-                    url.hash = "#" + rokuIp;
-                    history.replaceState({}, document.title, url);
-                } else {
-                    // bake_json_cookie("rokuIp", rokuIp);
-                }
-
                 var f = document.all.form4Posting;
                 f.action = "http://" + rokuIp + ":8060/" + (!keyDir ? "keypress" : keyDir) + "/" + keyPath;
-                console.log(`Posting to "${f.action}"`);
+                console.log(`Doing form submit for action "${f.action}"`);
                 f.submit();
             }
+            
+            // Set up an object for managing possible roku addresses and the corresponding select element
+            const rokuAddresses = {
+                addresses: new Set(), // initialize an empty set for keeping track of roku addresses
+            
+                init() {
+                    // First, get any addresses that are already in local storage (or initialize local storage)
+                    let storedAddresses;
+                    if (localStorage.getItem(LOCAL_STORAGE_KEY)) {
+                        storedAddresses = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY));
+                    } else {
+                        storedAddresses = { addresses: [], selected: "" };
+                        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(storedAddresses));
+                    }
+            
+                    // Add the address to the UI's select/dropdown element
+                    for (var a in storedAddresses.addresses) {
+                        this.upsertAddresses(storedAddresses[a], storedAddresses[a] === storedAddresses.selected);
+                    }
+            
+                    scanForRokus();
+                },
+            
+                upsertAddresses(address, selected) {
+                    // If we don't already have this address...
+                    if (!this.addresses.has(address)) {
+                        // update the select element
+                        const select = document.getElementById("rokuSelect");
+                        const option = document.createElement("option");
+                        option.value = address;
+                        option.text = address;
+                        if (selected) {
+                            option.selected = "selected";
+                        }
+                        select.appendChild(option);
+                        // at least one address has been added to the select dropdown, so hide the "searching" message
+                        document.getElementById("searchingMessage").style.display = "none";
+                    }
+                    // Add a new address to the set
+                    this.addresses.add(address);
+                    // update local storage
+                    localStorage.setItem(
+                        LOCAL_STORAGE_KEY,
+                        JSON.stringify({
+                            addresses: Array.from(addresses).sort(),
+                            selected: selected ? address : JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY)).selected,
+                        })
+                    );
+                },
+            
+                scanForRokus() {
+                    // The IP address ranges we will scan
+                    const ipRangesToScan = [];
+            
+                    // Second, get the address, if any, that is in the location hash
+                    if (location.hash.length > 1) {
+                        const ip = location.hash.slice(1);
+                        this.upsertAddresses(ip);
+                        // Use the address in the location hash to determine what ip addresses should be scanned
+                        if (ip.startsWith("192.168.0")) {
+                            ipRangesToScan.push("192.168.0");
+                        } else {
+                            ipRangesToScan.push("192.168.1");
+                        }
+                    } else {
+                        ipRangesToScan.push("192.168.0");
+                        ipRangesToScan.push("192.168.1");
+                    }
+            
+                    // Scan local IP addresses for roku devices
+            
+                    console.log("Discovering Roku devices on the network...");
+            
+                    // The path to the device info endpoint
+                    const path = "/query/device-info";
+            
+                    // An array to store the pending requests
+                    const requests = [];
+                    const errors = [];
+            
+                    let discovered = 0;
+            
+                    // Iterate through each IP address range and each IP address in the range, and add a request for each one to the pending requests array
+                    for (const ipRange of ipRangesToScan) {
+                        for (let i = 1; i <= 255; i++) {
+                            const ipAddress = `${ipRange}.${i}`;
+                            const url = `http://${ipAddress}:8060${path}`;
+            
+                            requests.push(
+                                fetch(url, { timeout: 1000 })
+                                    .then((response) => {
+                                        // If the response is successful, add the device to the list
+                                        if (response.ok) {
+                                            console.log(`Discovered Roku device: ${ipAddress}`);
+                                            discovered++;
+                                            this.upsertAddresses(ipAddress);
+                                        } else {
+                                            errors.push(ipAddress + " response != ok " + JSON.stringify(response, undefined, 4));
+                                        }
+                                    })
+                                    .catch((error) => {
+                                        if (error.type === "opaque") {
+                                            // Handle CORS-related error
+                                            console.warning(`Potential CORS error for ${url}`);
+                                        } else {
+                                            // Handle other types of errors
+                                            // If there's an error (e.g. the device is not found or doesn't respond), ignore it and continue scanning
+                                            errors.push(ipAddress + " ERROR " + error.message);
+                                        }
+                                    })
+                            );
+                        }
+                    }
+            
+                    // Send all of the requests in parallel and wait for all of them to complete before continuing
+                    Promise.all(requests).then(() => {
+                        console.log(`Discovered ${discovered} Roku devices on the network.`);
+                        errors.sort();
+                        console.warn(`Discovery errors by ip address:`, JSON.stringify(errors, undefined, 4));
+                    });
+                },
+            };
         </script>
         <style>
             div.btn {
@@ -205,23 +211,23 @@
         <div>&nbsp;</div>
         <div>&nbsp;</div>
         <div class="btn">
-            <span class="btn" onclick="postToRoku('PowerOff')" title="Power Off">⌽</span>
+            <span class="btn" onclick="sendToRoku('PowerOff')" title="Power Off">⌽</span>
         </div>
         <div class="btn">
-            <span class="btn" onclick="postToRoku('Home')" title="Home">⌂</span>
-            <span class="btn" onclick="postToRoku('VolumeUp')" title="Volume Up (Ctrl + Up Arrow)">🔊</span>
+            <span class="btn" onclick="sendToRoku('Home')" title="Home">⌂</span>
+            <span class="btn" onclick="sendToRoku('VolumeUp')" title="Volume Up (Ctrl + Up Arrow)">🔊</span>
         </div>
         <div class="btn">
-            <span class="btn" onclick="postToRoku('Back')" title="Back (Ctrl + Left Arrow)">←</span>
-            <span class="btn" onclick="postToRoku('VolumeDown')" title="Volume Down (Ctrl + Down Arrow)">🔉</span>
+            <span class="btn" onclick="sendToRoku('Back')" title="Back (Ctrl + Left Arrow)">←</span>
+            <span class="btn" onclick="sendToRoku('VolumeDown')" title="Volume Down (Ctrl + Down Arrow)">🔉</span>
         </div>
         <div class="btn">
-            <span class="btn" onclick="postToRoku('Info',null,'keydown')" title="Info">ⓘ</span>
+            <span class="btn" onclick="sendToRoku('Info',null,'keydown')" title="Info">ⓘ</span>
         </div>
         <div class="btn">
-            <span class="btn" onclick="postToRoku('Rev')" title="Reverse">⏪️</span>
-            <span class="btn" onclick="postToRoku('Play')" title="Play">▶️</span>
-            <span class="btn" onclick="postToRoku('Fwd')" title="Forward">⏩️</span>
+            <span class="btn" onclick="sendToRoku('Rev')" title="Reverse">⏪️</span>
+            <span class="btn" onclick="sendToRoku('Play')" title="Play">▶️</span>
+            <span class="btn" onclick="sendToRoku('Fwd')" title="Forward">⏩️</span>
         </div>
         <iframe name="if4rokuPost" style="display: none"></iframe>
         <form id="form4Posting" target="if4rokuPost" method="POST"></form>
