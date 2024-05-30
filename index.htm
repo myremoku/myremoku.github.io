@@ -75,12 +75,18 @@
                         localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(storedAddresses));
                     }
             
-                    // Add the address to the UI's select/dropdown element
+                    // Add those address from local storage to the UI's select/dropdown element
                     for (var a in storedAddresses.addresses) {
                         this.upsertAddresses(storedAddresses[a], storedAddresses[a] === storedAddresses.selected);
                     }
-            
-                    scanForRokus();
+
+                    // Second, if there is a hash, presume it is an address and add it
+                    if (location.hash.length > 1) {
+                        this.upsertAddresses(location.hash.slice(1));
+                    }
+
+                    // Finally, scan for Rokus on the network so they can be added
+                    this.scanForRokus();
                 },
             
                 upsertAddresses(address, selected) {
@@ -114,12 +120,11 @@
                     // The IP address ranges we will scan
                     const ipRangesToScan = [];
             
-                    // Second, get the address, if any, that is in the location hash
+                    // Get the address, if any, that is in the location hash
                     if (location.hash.length > 1) {
-                        const ip = location.hash.slice(1);
-                        this.upsertAddresses(ip);
                         // Use the address in the location hash to determine what ip addresses should be scanned
-                        if (ip.startsWith("192.168.0")) {
+                        // TODO - use regex to get the first three parts of the address
+                        if (location.hash.slice(1).startsWith("192.168.0")) {
                             ipRangesToScan.push("192.168.0");
                         } else {
                             ipRangesToScan.push("192.168.1");
