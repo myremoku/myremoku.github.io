@@ -11,20 +11,19 @@
 
             //window.location = "http://remoku.tv";
 
-
             // ON SECOND THOUGHT, remoku.tv sucks at sending keypresses to the roku
 
             // Roku ECP API
             // https://developer.roku.com/docs/developer-program/dev-tools/external-control-api.md
-            
+
             // FYI:  The localStorage key "rokuAddreses43" has "43" at the end just to help ensure it is unique.
             let LOCAL_STORAGE_KEY = "rokuAddresses43";
-            
+
             function onBodyLoad() {
                 console.log("START onBodyLoad()");
-            
+
                 rokuAddresses.init();
-            
+
                 // Handle changes to the select/dropdown list of possible roku ip addresses
                 const rokuSelect = document.getElementById("rokuSelect");
                 rokuSelect.onchange = function () {
@@ -36,7 +35,7 @@
                     rokuAddresses.upsertAddresses(selectedValue, true);
                     window.location.hash = "#" + selectedValue;
                 };
-            
+
                 // Capture keydown events and send them to the roku when appropriate
                 document.addEventListener("keydown", (e) => {
                     console.log(
@@ -64,7 +63,7 @@
                     } else sendToRoku(nonLitKeys[event.key] || "LIT_" + event.key, event);
                 });
             }
-            
+
             function sendToRoku(keyPath, event, keyDir) {
                 var rokuIp = location.hash.slice(1);
                 var f = document.all.form4Posting;
@@ -72,11 +71,11 @@
                 console.log(`Doing form submit for action "${f.action}"`);
                 f.submit();
             }
-            
+
             // Set up an object for managing possible roku addresses and the corresponding select element
             const rokuAddresses = {
                 addresses: new Set(), // initialize an empty set for keeping track of roku addresses
-            
+
                 init() {
                     // First, get any addresses that are already in local storage (or initialize local storage)
                     let storedAddresses;
@@ -86,7 +85,7 @@
                         storedAddresses = { addresses: [], selected: "" };
                         localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(storedAddresses));
                     }
-            
+
                     // Add those address from local storage to the UI's select/dropdown element
                     for (var a in storedAddresses.addresses) {
                         this.upsertAddresses(storedAddresses[a], storedAddresses[a] === storedAddresses.selected);
@@ -100,7 +99,7 @@
                     // Finally, scan for Rokus on the network so they can be added
                     this.scanForRokus();
                 },
-            
+
                 upsertAddresses(address, selected) {
                     // If we don't already have this address...
                     if (!this.addresses.has(address)) {
@@ -127,11 +126,11 @@
                         })
                     );
                 },
-            
+
                 scanForRokus() {
                     // The IP address ranges we will scan
                     const ipRangesToScan = [];
-            
+
                     // Get the address, if any, that is in the location hash
                     if (location.hash.length > 1) {
                         // Use the address in the location hash to determine what ip addresses should be scanned
@@ -145,26 +144,26 @@
                         ipRangesToScan.push("192.168.0");
                         ipRangesToScan.push("192.168.1");
                     }
-            
+
                     // Scan local IP addresses for roku devices
-            
+
                     console.log("Discovering Roku devices on the network...");
-            
+
                     // The path to the device info endpoint
                     const path = "/query/device-info";
-            
+
                     // An array to store the pending requests
                     const requests = [];
                     const errors = [];
-            
+
                     let discovered = 0;
-            
+
                     // Iterate through each IP address range and each IP address in the range, and add a request for each one to the pending requests array
                     for (const ipRange of ipRangesToScan) {
                         for (let i = 1; i <= 255; i++) {
                             const ipAddress = `${ipRange}.${i}`;
                             const url = `http://${ipAddress}:8060${path}`;
-            
+
                             requests.push(
                                 fetch(url, { timeout: 1000 })
                                     .then((response) => {
@@ -190,7 +189,7 @@
                             );
                         }
                     }
-            
+
                     // Send all of the requests in parallel and wait for all of them to complete before continuing
                     Promise.all(requests).then(() => {
                         console.log(`Discovered ${discovered} Roku devices on the network.`);
@@ -249,5 +248,35 @@
         <iframe name="if4rokuPost" style="display: none"></iframe>
         <form id="form4Posting" target="if4rokuPost" method="POST"></form>
         <form id="form4Getting" target="if4rokuGet" method="GET"></form>
+
+        <div style="color: white">
+            <div style="display: inline-block; text-align: center">
+                <div style="width: 116px; height: 87px; overflow: hidden; display: inline-block">
+                    <iframe
+                        style="transform: scale(0.4); transform-origin: 0 0; width: 290px; height: 218px; border: 0"
+                        src="http://192.168.0.157:8060/query/icon/2016"
+                    ></iframe>
+                </div>
+                <div style="width: 116px; display: flex; justify-content: center; align-items: center">hey hey</div>
+            </div>
+            <div style="display: inline-block; text-align: center">
+                <div style="width: 116px; height: 87px; overflow: hidden; display: inline-block">
+                    <iframe
+                        style="transform: scale(0.4); transform-origin: 0 0; width: 290px; height: 218px; border: 0"
+                        src="http://192.168.0.157:8060/query/icon/2016"
+                    ></iframe>
+                </div>
+                <div style="width: 116px; display: flex; justify-content: center; align-items: center">hey hey</div>
+            </div>
+            <div style="display: inline-block; text-align: center">
+                <div style="width: 116px; height: 87px; overflow: hidden; display: inline-block">
+                    <iframe
+                        style="transform: scale(0.4); transform-origin: 0 0; width: 290px; height: 218px; border: 0"
+                        src="http://192.168.0.157:8060/query/icon/2016"
+                    ></iframe>
+                </div>
+                <div style="width: 116px; display: flex; justify-content: center; align-items: center">hey hey</div>
+            </div>
+        </div>
     </body>
 </html>
